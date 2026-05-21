@@ -9,96 +9,141 @@
             margin: 0;
             padding: 0;
             background-color: #f7f7f7;
-            overflow: hidden; /* 隐藏滚动条 */
+            overflow: hidden; 
             font-family: 'Microsoft YaHei', sans-serif;
+            touch-action: none; /* 防止手机端滑动 */
         }
-        /* 弹窗的样式 */
         .popup {
             position: absolute;
-            padding: 15px 25px;
-            border-radius: 12px;
-            box-shadow: 0 4px 15px rgba(0,0,0,0.2);
-            font-size: 16px;
+            padding: 10px 20px;
+            border-radius: 10px;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.15);
+            font-size: 14px;
             font-weight: bold;
             color: #333;
             user-select: none;
-            transition: transform 0.2s;
-            animation: popIn 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+            cursor: pointer;
+            /* 使用 translate 使坐标定位在弹窗中心点，更利于画心形 */
+            transform: translate(-50%, -50%) scale(1);
+            animation: popIn 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+            transition: opacity 0.3s;
+            white-space: nowrap;
         }
-        /* 点击弹窗时的动画效果 */
-        .popup:active {
-            transform: scale(0.9);
-        }
-        /* 弹窗弹出的动画 */
         @keyframes popIn {
-            0% { transform: scale(0); opacity: 0; }
-            100% { transform: scale(1); opacity: 1; }
+            0% { transform: translate(-50%, -50%) scale(0); opacity: 0; }
+            100% { transform: translate(-50%, -50%) scale(1); opacity: 1; }
         }
-        /* 提示语 */
         #tip {
             position: absolute;
             top: 50%;
             width: 100%;
             text-align: center;
-            color: #ccc;
+            color: #aaa;
+            font-size: 16px;
             z-index: -1;
+            transform: translateY(-50%);
         }
     </style>
 </head>
 <body>
 
-    <div id="tip">点我屏幕任何地方开始，点击弹窗即可关闭</div>
+    <div id="tip">点我屏幕任何地方开始</div>
 
     <script>
-        // 文案库
         const messages = ["多喝水呀 💧", "好好爱自己 ❤️", "好好吃饭 🍚", "保持好心情 😊", "我想你了 ✨", "顺顺利利 🍀", "别熬夜 🌙", "天凉了多穿衣服 🧣"];
-        // 背景色库
-        const colors = ["#FFB6C1", "#ADD8E6", "#90EE90", "#FFFACD", "#FF69B4", "#87CEEB"];
+        const colors = ["#FFB6C1", "#ADD8E6", "#90EE90", "#FFFACD", "#FF69B4", "#87CEEB", "#E0FFFF"];
         
         let isRunning = false;
+        let heartPopups = []; // 存放爱心弹窗的数组
 
-        function createPopup() {
+        // 经典爱心参数方程生成坐标
+        function getHeartPoint(t, scale) {
+            // 参数方程 x = 16*sin^3(t)
+            let x = 16 * Math.pow(Math.sin(t), 3);
+            // 参数方程 y = 13*cos(t) - 5*cos(2t) - 2*cos(3t) - cos(4t)
+            let y = 13 * Math.cos(t) - 5 * Math.cos(2*t) - 2 * Math.cos(3*t) - Math.cos(4*t);
+            // 注意：网页的 Y 轴是向下的，所以数学坐标的 y 需要取反
+            return { x: x * scale, y: -y * scale };
+        }
+
+        function createPopup(x, y, text, bgColor, isHeartObj = false) {
             const div = document.createElement('div');
             div.className = 'popup';
-            
-            // 随机抽取文案和颜色
-            const text = messages[Math.floor(Math.random() * messages.length)];
-            const bgColor = colors[Math.floor(Math.random() * colors.length)];
-            
             div.innerText = text;
             div.style.backgroundColor = bgColor;
-
-            // 随机生成位置，确保不超过手机屏幕边界
-            const screenWidth = window.innerWidth;
-            const screenHeight = window.innerHeight;
-            // 估算一下弹窗的宽高
-            const popupWidth = 160; 
-            const popupHeight = 50;
-            
-            const x = Math.random() * (screenWidth - popupWidth);
-            const y = Math.random() * (screenHeight - popupHeight);
-            
             div.style.left = `${x}px`;
             div.style.top = `${y}px`;
 
-            // 点击弹窗销毁自己
             div.onclick = function(e) {
-                e.stopPropagation(); // 阻止事件冒泡
+                e.stopPropagation();
                 div.remove();
             };
 
             document.body.appendChild(div);
+            if(isHeartObj) heartPopups.push(div);
+            return div;
         }
 
-        // 点击屏幕任意位置开始疯狂弹窗
-        document.body.onclick = function() {
+        // 核心动画序列
+        function startSequence() {
             if (isRunning) return;
             isRunning = true;
-            document.getElementById('tip').style.display = 'none'; // 隐藏提示
+            document.getElementById('tip').style.display = 'none';
+
+            const w = window.innerWidth;
+            const h = window.innerHeight;
             
-            // 每隔 200 毫秒生成一个新弹窗 (可以根据喜好调整速度)
-            setInterval(createPopup, 200);
-        };
+            // 动态计算缩放比例，保证手机和电脑都能放下完整的爱心
+            const scale = Math.min(w, h) / 45; 
+            const n = 50; // 爱心由 50 个弹窗组成
+
+            // 第一阶段：画爱心
+            for (let i = 0; i < n; i++) {
+                setTimeout(() => {
+                    let t = (i / n) * 2 * Math.PI;
+                    let pt = getHeartPoint(t, scale);
+                    
+                    // 将数学坐标平移到屏幕中心
+                    let px = w / 2 + pt.x;
+                    let py = h / 2 + pt.y - 30; // 稍微往上移一点点视觉更居中
+
+                    // 最后一个弹窗显示专属文案，前面的随机
+                    let text = (i === n - 1) ? "充实自己 🌟" : messages[Math.floor(Math.random() * messages.length)];
+                    let color = colors[Math.floor(Math.random() * colors.length)];
+
+                    createPopup(px, py, text, color, true);
+                }, i * 50); // 每隔 50 毫秒弹出一个，形成画线效果
+            }
+
+            // 计算画完爱心需要的时间
+            const heartDrawTime = n * 50; 
+
+            // 第二阶段：停留展示后，关闭爱心并开始满屏弹窗
+            setTimeout(() => {
+                // 1. 爱心渐渐消失
+                heartPopups.forEach(p => {
+                    p.style.opacity = '0';
+                    setTimeout(() => p.remove(), 300);
+                });
+
+                // 2. 延迟一点点时间后，爆发满屏弹窗
+                setTimeout(() => {
+                    setInterval(() => {
+                        let text = messages[Math.floor(Math.random() * messages.length)];
+                        let color = colors[Math.floor(Math.random() * colors.length)];
+                        
+                        // 随机位置，预留出边缘空间防止被截断
+                        let px = Math.random() * (w - 100) + 50;
+                        let py = Math.random() * (h - 50) + 25;
+                        
+                        createPopup(px, py, text, color, false);
+                    }, 150); // 每 150 毫秒弹出一个新的
+                }, 500);
+
+            }, heartDrawTime + 1800); // 等爱心画完，再额外停留 1.8 秒
+        }
+
+        document.body.onclick = startSequence;
     </script>
 </body>
 </html>
