@@ -1,0 +1,104 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>给你的惊喜</title>
+    <style>
+        body {
+            margin: 0;
+            padding: 0;
+            background-color: #f7f7f7;
+            overflow: hidden; /* 隐藏滚动条 */
+            font-family: 'Microsoft YaHei', sans-serif;
+        }
+        /* 弹窗的样式 */
+        .popup {
+            position: absolute;
+            padding: 15px 25px;
+            border-radius: 12px;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.2);
+            font-size: 16px;
+            font-weight: bold;
+            color: #333;
+            user-select: none;
+            transition: transform 0.2s;
+            animation: popIn 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+        }
+        /* 点击弹窗时的动画效果 */
+        .popup:active {
+            transform: scale(0.9);
+        }
+        /* 弹窗弹出的动画 */
+        @keyframes popIn {
+            0% { transform: scale(0); opacity: 0; }
+            100% { transform: scale(1); opacity: 1; }
+        }
+        /* 提示语 */
+        #tip {
+            position: absolute;
+            top: 50%;
+            width: 100%;
+            text-align: center;
+            color: #ccc;
+            z-index: -1;
+        }
+    </style>
+</head>
+<body>
+
+    <div id="tip">点我屏幕任何地方开始，点击弹窗即可关闭</div>
+
+    <script>
+        // 文案库
+        const messages = ["多喝水呀 💧", "好好爱自己 ❤️", "好好吃饭 🍚", "保持好心情 😊", "我想你了 ✨", "顺顺利利 🍀", "别熬夜 🌙", "天凉了多穿衣服 🧣"];
+        // 背景色库
+        const colors = ["#FFB6C1", "#ADD8E6", "#90EE90", "#FFFACD", "#FF69B4", "#87CEEB"];
+        
+        let isRunning = false;
+
+        function createPopup() {
+            const div = document.createElement('div');
+            div.className = 'popup';
+            
+            // 随机抽取文案和颜色
+            const text = messages[Math.floor(Math.random() * messages.length)];
+            const bgColor = colors[Math.floor(Math.random() * colors.length)];
+            
+            div.innerText = text;
+            div.style.backgroundColor = bgColor;
+
+            // 随机生成位置，确保不超过手机屏幕边界
+            const screenWidth = window.innerWidth;
+            const screenHeight = window.innerHeight;
+            // 估算一下弹窗的宽高
+            const popupWidth = 160; 
+            const popupHeight = 50;
+            
+            const x = Math.random() * (screenWidth - popupWidth);
+            const y = Math.random() * (screenHeight - popupHeight);
+            
+            div.style.left = `${x}px`;
+            div.style.top = `${y}px`;
+
+            // 点击弹窗销毁自己
+            div.onclick = function(e) {
+                e.stopPropagation(); // 阻止事件冒泡
+                div.remove();
+            };
+
+            document.body.appendChild(div);
+        }
+
+        // 点击屏幕任意位置开始疯狂弹窗
+        document.body.onclick = function() {
+            if (isRunning) return;
+            isRunning = true;
+            document.getElementById('tip').style.display = 'none'; // 隐藏提示
+            
+            // 每隔 200 毫秒生成一个新弹窗 (可以根据喜好调整速度)
+            setInterval(createPopup, 200);
+        };
+    </script>
+</body>
+</html>
